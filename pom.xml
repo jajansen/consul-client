@@ -4,7 +4,7 @@
     <groupId>com.orbitz.consul</groupId>
     <artifactId>consul-client</artifactId>
     <packaging>jar</packaging>
-    <version>0.12.3</version>
+    <version>0.12.3-osgi</version>
     <name>consul-client</name>
     <url>http://maven.apache.org</url>
     <description>Consul Client for Java</description>
@@ -31,14 +31,15 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>nexus-release-repository</id>
+            <name>Dev Repository</name>
+            <url>https://nexus.bw-sl.com/nexus/content/repositories/releases/</url>
         </repository>
+        <snapshotRepository>
+            <id>nexus-snapshot-repository</id>
+            <url>https://nexus.bw-sl.com/nexus/content/repositories/snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
     <repositories>
         <repository>
@@ -76,7 +77,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>19.0</version>
+            <version>17.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -265,6 +266,58 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <instructions>
+                        <Export-Package>com.orbitz.consul.*</Export-Package>
+                        <Import-Package>
+                            com.google.common.base,
+                            com.google.common.collect,
+                            com.google.common.io,
+                            com.google.common.net,
+                            com.google.common.primitives,
+                            com.orbitz.consul ,
+                            com.orbitz.consul.async ,
+                            com.orbitz.consul.cache ,
+                            com.orbitz.consul.model ,
+                            com.orbitz.consul.model.acl ,
+                            com.orbitz.consul.model.agent ,
+                            com.orbitz.consul.model.catalog ,
+                            com.orbitz.consul.model.event ,
+                            com.orbitz.consul.model.health ,
+                            com.orbitz.consul.model.kv ,
+                            com.orbitz.consul.model.query ,
+                            com.orbitz.consul.model.session ,
+                            com.orbitz.consul.option ,
+                            com.orbitz.consul.util,
+                            org.slf4j,
+                            javax.net.ssl,
+                            javax.net
+                        </Import-Package>
+                        <Private-Package>*</Private-Package>
+                    </instructions>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>bundle-manifest</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>manifest</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                    </archive>
+                </configuration>
             </plugin>
         </plugins>
     </build>
