@@ -275,6 +275,7 @@
                     <instructions>
                         <Export-Package>com.orbitz.consul.*</Export-Package>
                         <Import-Package>
+                            com.google.common.hash,
                             com.google.common.base,
                             com.google.common.collect,
                             com.google.common.io,
