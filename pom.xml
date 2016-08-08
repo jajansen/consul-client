@@ -297,7 +297,8 @@
                             com.orbitz.consul.util,
                             org.slf4j,
                             javax.net.ssl,
-                            javax.net
+                            javax.net,
+                            org.w3c.dom
                         </Import-Package>
                         <Private-Package>*</Private-Package>
                     </instructions>
