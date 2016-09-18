@@ -7,13 +7,17 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.net.HostAndPort;
 import com.orbitz.consul.util.Jackson;
 import okhttp3.*;
+import okhttp3.internal.Util;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -172,6 +176,7 @@ public class Consul {
     public static class Builder {
         private URL url;
         private SSLContext sslContext;
+        private HostnameVerifier hostnameVerifier;
         private boolean ping = true;
         private Interceptor basicAuthInterceptor;
         private Interceptor aclTokenInterceptor;
@@ -322,6 +327,18 @@ public class Consul {
         }
 
         /**
+         * Sets the {@link HostnameVerifier} for the client.
+         *
+         * @param hostnameVerifier The hostname verifier to use.
+         * @return The builder.
+         */
+        public Builder withHostnameVerifier(HostnameVerifier hostnameVerifier) {
+            this.hostnameVerifier = hostnameVerifier;
+
+            return this;
+        }
+
+        /**
          * Connect timeout for OkHttpClient
          * @param timeoutMillis timeout values in milliseconds
          * @return The builder
@@ -366,8 +383,9 @@ public class Consul {
             final Retrofit retrofit;
             try {
                 retrofit = createRetrofit(
-                        this.url.toExternalForm(),
+                        buildUrl(this.url),
                         this.sslContext,
+                        this.hostnameVerifier,
                         Jackson.MAPPER);
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
@@ -388,8 +406,12 @@ public class Consul {
             return new Consul(agentClient, healthClient, keyValueClient, catalogClient, statusClient, sessionClient, eventClient, preparedQueryClient);
         }
 
+        private String buildUrl(URL url) {
+            return url.toExternalForm().replaceAll("/$", "") + "/v1/";
+        }
 
-        private Retrofit createRetrofit(String url, SSLContext sslContext, ObjectMapper mapper) throws MalformedURLException {
+
+        private Retrofit createRetrofit(String url, SSLContext sslContext, HostnameVerifier hostnameVerifier, ObjectMapper mapper) throws MalformedURLException {
             final OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
             if (basicAuthInterceptor != null) {
@@ -401,6 +423,10 @@ public class Consul {
 
             if (sslContext != null) {
                 builder.sslSocketFactory(sslContext.getSocketFactory());
+            }
+
+            if (hostnameVerifier != null) {
+                builder.hostnameVerifier(hostnameVerifier);
             }
 
             if (connectTimeoutMillis != null) {
@@ -415,11 +441,19 @@ public class Consul {
                 builder.writeTimeout(writeTimeoutMillis, TimeUnit.MILLISECONDS);
             }
 
+            /**
+             * mimics okhttp3.Dispatcher#executorService implementation, except
+             * using daemon thread so shutdown is not blocked (issue #133)
+             */
+            Dispatcher dispatcher = new Dispatcher(new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                    new SynchronousQueue<Runnable>(), Util.threadFactory("OkHttp Dispatcher", true)));
+            builder.dispatcher(dispatcher);
+
             final URL consulUrl = new URL(url);
 
             return new Retrofit.Builder()
                     .baseUrl(new URL(consulUrl.getProtocol(), consulUrl.getHost(),
-                            consulUrl.getPort(), "/v1/").toExternalForm())
+                            consulUrl.getPort(), consulUrl.getFile()).toExternalForm())
                     .addConverterFactory(JacksonConverterFactory.create(mapper))
                     .client(builder.build())
                     .build();

@@ -18,11 +18,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class CatalogTests {
+public class CatalogTests extends BaseIntegrationTest {
 
     @Test
     public void shouldGetNodes() throws UnknownHostException {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
 
         assertFalse(catalogClient.getNodes().getResponse().isEmpty());
@@ -30,7 +29,6 @@ public class CatalogTests {
 
     @Test
     public void shouldGetNodesByDatacenter() throws UnknownHostException {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
 
         assertFalse(catalogClient.getNodes(ImmutableCatalogOptions.builder().datacenter("dc1").build()).getResponse().isEmpty());
@@ -38,7 +36,6 @@ public class CatalogTests {
 
     @Test
     public void shouldGetNodesByDatacenterBlock() throws UnknownHostException {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
 
         long start = System.currentTimeMillis();
@@ -52,7 +49,6 @@ public class CatalogTests {
 
     @Test
     public void shouldGetDatacenters() throws UnknownHostException {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
         List<String> datacenters = catalogClient.getDatacenters();
 
@@ -62,7 +58,6 @@ public class CatalogTests {
 
     @Test
     public void shouldGetServices() throws Exception {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
         ConsulResponse<Map<String, List<String>>> services = catalogClient.getServices();
 
@@ -71,7 +66,6 @@ public class CatalogTests {
 
     @Test
     public void shouldGetService() throws Exception {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
         ConsulResponse<List<CatalogService>> services = catalogClient.getService("consul");
 
@@ -80,7 +74,6 @@ public class CatalogTests {
 
     @Test
     public void shouldGetNode() throws Exception {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
         ConsulResponse<CatalogNode> node = catalogClient.getNode(catalogClient.getNodes()
                 .getResponse().iterator().next().getNode());
@@ -90,28 +83,26 @@ public class CatalogTests {
 
     @Test
     public void shouldGetTaggedAddressesForNodesLists() throws UnknownHostException {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
 
         final List<Node> nodesResp = catalogClient.getNodes().getResponse();
         for (Node node : nodesResp) {
             assertNotNull(node.getTaggedAddresses());
-            assertNotNull(node.getTaggedAddresses().getWan());
-            assertFalse(node.getTaggedAddresses().getWan().isEmpty());
+            assertNotNull(node.getTaggedAddresses().get().getWan());
+            assertFalse(node.getTaggedAddresses().get().getWan().isEmpty());
         }
     }
 
     @Test
     public void shouldGetTaggedAddressesForNode() throws UnknownHostException {
-        Consul client = Consul.builder().build();
         CatalogClient catalogClient = client.catalogClient();
 
         final List<Node> nodesResp = catalogClient.getNodes().getResponse();
         for (Node tmp : nodesResp) {
             final Node node = catalogClient.getNode(tmp.getNode()).getResponse().getNode();
             assertNotNull(node.getTaggedAddresses());
-            assertNotNull(node.getTaggedAddresses().getWan());
-            assertFalse(node.getTaggedAddresses().getWan().isEmpty());
+            assertNotNull(node.getTaggedAddresses().get().getWan());
+            assertFalse(node.getTaggedAddresses().get().getWan().isEmpty());
         }
     }
 }
